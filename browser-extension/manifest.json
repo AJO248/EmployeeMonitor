@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "CPAM Companion",
+  "version": "0.1",
+  "description": "Sends active tab info to local CPAM agent",
+  "permissions": ["tabs", "activeTab"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

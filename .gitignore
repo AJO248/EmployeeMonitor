@@ -1,4 +1,7 @@
 build/
 native-agent/build/
+.venv/
 __pycache__/
 backend/__pycache__/
+backend/*.db
+cpam_cache.db

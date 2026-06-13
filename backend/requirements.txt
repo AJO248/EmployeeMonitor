@@ -1,3 +1,10 @@
 fastapi
 uvicorn[standard]
 pydantic
+SQLAlchemy>=1.4
+asyncpg
+bcrypt
+PyJWT
+aiosqlite
+alembic
+python-dotenv

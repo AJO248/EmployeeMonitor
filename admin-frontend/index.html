@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CPAM Admin Dashboard</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js from jsDelivr CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main>
+      <!-- Login Panel -->
+      <section id="login-panel" class="panel narrow">
+        <div class="login-header">
+          <div class="logo-badge">CPAM</div>
+          <h1>CPAM Admin</h1>
+          <p>Sign in to review secure analytics. </p>
+        </div>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input id="username" autocomplete="username" required placeholder="Enter admin username">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="primary-btn">Sign in</button>
+          <p id="login-error" class="error"></p>
+        </form>
+      </section>
+
+      <!-- Dashboard Panel -->
+      <section id="dashboard" hidden>
+        <header class="dashboard-header">
+          <div class="header-title">
+            <div class="logo-row">
+              <span class="logo-badge">CPAM</span>
+              <h1>Productivity Analytics</h1>
+            </div>
+            <p>Real-time employee monitoring console.</p>
+          </div>
+          <div class="actions">
+            <div class="select-wrapper">
+              <select id="device-filter">
+                <option value="all">All Devices</option>
+              </select>
+            </div>
+            <div class="select-wrapper">
+              <select id="hours">
+                <option value="8">Last 8 hours</option>
+                <option value="24" selected>Last 24 hours</option>
+                <option value="168">Last 7 days</option>
+              </select>
+            </div>
+            <button id="refresh" type="button" class="action-btn">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l.73-.73"/></svg>
+              Refresh
+            </button>
+            <button id="logout" type="button" class="secondary-btn">Log out</button>
+          </div>
+        </header>
+
+        <!-- Devices Container -->
+        <div id="devices" class="grid"></div>
+        <p id="empty" class="empty-state" hidden>No monitoring data received for the selected period.</p>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

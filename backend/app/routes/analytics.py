@@ -10,7 +10,7 @@ from .. import models
 from ..database import get_session
 from ..schemas import DeviceSummary, UsageItem
 from ..security import require_admin
-from ..utils.productivity import classify_activity
+from ..utils.productivity import classify_activity, BROWSER_APPS
 
 router = APIRouter(
     prefix="/api/v1/analytics",
@@ -39,6 +39,8 @@ def _summarize(entries: List[models.LogEntry]) -> List[DeviceSummary]:
     for entry in entries:
         by_device[entry.device_id or "unknown"].append(entry)
 
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+
     summaries = []
     for device_id, device_entries in by_device.items():
         device_entries.sort(key=lambda entry: entry.event_ts)
@@ -48,35 +50,59 @@ def _summarize(entries: List[models.LogEntry]) -> List[DeviceSummary]:
         idle_seconds = 0
         productive_seconds = 0
 
+        # Propagated state
+        current_app = None
+        current_domain = None
+
         for index, entry in enumerate(device_entries):
+            # 1. Update propagated state based on the current event
+            if entry.app_name:
+                current_app = entry.app_name
+                # If the app changed to a non-browser, clear the browser domain context
+                if current_app.lower() not in BROWSER_APPS:
+                    current_domain = None
+            
+            if entry.domain:
+                current_domain = entry.domain
+                # If we have a domain, ensure we are classified under a browser app
+                if not current_app or current_app.lower() not in BROWSER_APPS:
+                    current_app = "chrome.exe"
+
+            # 2. Determine duration of this state interval
             if index + 1 < len(device_entries):
                 gap = max(0, (device_entries[index + 1].event_ts - entry.event_ts) // 1000)
                 duration = min(gap, MAX_INTERVAL_SECONDS)
             else:
-                duration = 0
+                # Last event: count ongoing activity if active recently
+                latest_ts = entry.event_ts
+                age_sec = max(0, (now_ms - latest_ts) // 1000)
+                if age_sec <= OFFLINE_AFTER_SECONDS:
+                    duration = min(age_sec, MAX_INTERVAL_SECONDS)
+                else:
+                    duration = 0
 
+            # 3. Process active vs. idle interval
             if entry.event_type.startswith("idle_") and entry.event_type != "idle_ended":
-                if index + 1 < len(device_entries):
-                    idle_seconds += max(
-                        0, (device_entries[index + 1].event_ts - entry.event_ts) // 1000
-                    )
+                idle_seconds += duration
+                current_app = None
+                current_domain = None
                 continue
 
             active_seconds += duration
 
-            # Evaluate productivity for the active duration
-            classification = classify_activity(entry.app_name, entry.domain)
+            # Evaluate productivity using propagated state
+            classification = classify_activity(current_app, current_domain)
             if classification == "productive":
                 productive_seconds += duration
 
-            if entry.app_name:
-                apps[entry.app_name] += duration
-            if entry.domain:
-                domains[entry.domain] += duration
+            if current_app:
+                apps[current_app] += duration
+            if current_domain:
+                domains[current_domain] += duration
 
         latest = device_entries[-1]
         age_seconds = max(
-            0, int(datetime.now(timezone.utc).timestamp()) - latest.event_ts // 1000
+            0, now_ms // 1000 - latest.event_ts // 1000
         )
         if age_seconds > OFFLINE_AFTER_SECONDS:
             status = "Offline"

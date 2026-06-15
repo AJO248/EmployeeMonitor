@@ -237,8 +237,6 @@ bool init_database(const char *path)
         "CREATE TABLE IF NOT EXISTS events ("
         "id INTEGER PRIMARY KEY, raw TEXT NOT NULL, received_at INTEGER NOT NULL, "
         "delivered_at INTEGER, attempts INTEGER NOT NULL DEFAULT 0);");
-    execute_schema_statement("ALTER TABLE events ADD COLUMN delivered_at INTEGER;");
-    execute_schema_statement("ALTER TABLE events ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;");
     execute_schema_statement("CREATE INDEX IF NOT EXISTS idx_events_pending ON events(delivered_at, id);");
     return true;
 }
@@ -557,20 +555,22 @@ void websocket_server()
         SOCKET client = accept(listener, nullptr, nullptr);
         if (client == INVALID_SOCKET)
             continue;
-        const std::string headers = read_http_header(client);
-        const std::string key = get_header_value(headers, "Sec-WebSocket-Key");
-        if (!key.empty())
-        {
-            send_websocket_handshake(client, sha1_base64(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
-            while (true)
+        std::thread([client]() {
+            const std::string headers = read_http_header(client);
+            const std::string key = get_header_value(headers, "Sec-WebSocket-Key");
+            if (!key.empty())
             {
-                const std::string payload = read_websocket_frame(client);
-                if (payload.empty())
-                    break;
-                insert_raw_event(payload);
+                send_websocket_handshake(client, sha1_base64(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
+                while (true)
+                {
+                    const std::string payload = read_websocket_frame(client);
+                    if (payload.empty())
+                        break;
+                    insert_raw_event(payload);
+                }
             }
-        }
-        closesocket(client);
+            closesocket(client);
+        }).detach();
     }
 }
 

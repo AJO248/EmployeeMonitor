@@ -69,7 +69,7 @@ def classify_activity(app_name: Optional[str], domain: Optional[str]) -> str:
     app_lower = (app_name or "").lower()
     domain_lower = (domain or "").lower()
 
-    if app_lower in BROWSER_APPS:
+    if app_lower in BROWSER_APPS or (not app_lower and domain_lower):
         # Check domain classification
         for prod in PRODUCTIVE_DOMAINS:
             if prod in domain_lower:

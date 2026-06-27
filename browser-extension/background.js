@@ -4,9 +4,9 @@ function ensureWS() {
   try {
     if (ws && ws.readyState === WebSocket.OPEN) return;
     ws = new WebSocket('ws://127.0.0.1:8585');
-    ws.onopen = () => console.log('CPAM WS connected');
-    ws.onclose = () => { console.log('CPAM WS closed'); setTimeout(ensureWS, 2000); };
-    ws.onerror = (e) => console.warn('CPAM WS error', e);
+    ws.onopen = () => console.log('EM WS connected');
+    ws.onclose = () => { console.log('EM WS closed'); setTimeout(ensureWS, 2000); };
+    ws.onerror = (e) => console.warn('EM WS error', e);
   } catch (e) {
     console.warn('WS init failed', e);
     setTimeout(ensureWS, 2000);

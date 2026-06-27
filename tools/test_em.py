@@ -14,15 +14,15 @@ try:
 except ImportError:
     pass
 
-backend_url = os.getenv("CPAM_BACKEND_URL", "http://127.0.0.1:8000")
+backend_url = os.getenv("EM_BACKEND_URL", "http://127.0.0.1:8000")
 if "/api/v1/logs" in backend_url:
     BASE_URL = backend_url.split("/api/v1/logs")[0]
 else:
     BASE_URL = backend_url.rstrip("/")
 
-INGEST_TOKEN = os.getenv("CPAM_INGEST_TOKEN", "development-ingest-token")
-ADMIN_USER = os.getenv("CPAM_ADMIN_USERNAME", "admin")
-ADMIN_PASS = os.getenv("CPAM_ADMIN_PASSWORD", "change-me")
+INGEST_TOKEN = os.getenv("EM_INGEST_TOKEN", "development-ingest-token")
+ADMIN_USER = os.getenv("EM_ADMIN_USERNAME", "admin")
+ADMIN_PASS = os.getenv("EM_ADMIN_PASSWORD", "change-me")
 
 def make_request(url, method="GET", data=None, headers=None):
     headers = headers or {}
@@ -68,7 +68,7 @@ def test_flow():
     # Parse cookies from login response to mimic browser session
     cookie_header = None
     for k, v in headers.items():
-        if k.lower() == "set-cookie" and "cpam_access_token" in v:
+        if k.lower() == "set-cookie" and "em_access_token" in v:
             cookie_header = v.split(";")[0]
             break
             
@@ -185,7 +185,7 @@ def test_flow():
             sys.exit(1)
             
     if not rate_limited:
-        print("Warning: Did not trigger 429 rate limit (is CPAM_INGEST_RATE_LIMIT_PER_MINUTE configured differently?)")
+        print("Warning: Did not trigger 429 rate limit (is EM_INGEST_RATE_LIMIT_PER_MINUTE configured differently?)")
         sys.exit(1)
 
     print("\nAll integration checks passed successfully!")

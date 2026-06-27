@@ -52,7 +52,7 @@ async def require_admin(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> models.AdminUser:
-    token = credentials.credentials if credentials else request.cookies.get("cpam_access_token")
+    token = credentials.credentials if credentials else request.cookies.get("em_access_token")
     if not token:
         raise HTTPException(status_code=401, detail="Missing bearer token")
     try:

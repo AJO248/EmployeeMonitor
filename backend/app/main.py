@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI(title="CPAM API")
+app = FastAPI(title="EM API")
 app.include_router(logs.router)
 app.include_router(auth.router)
 app.include_router(analytics.router)

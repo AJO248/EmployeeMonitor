@@ -1,4 +1,4 @@
-"""Initial CPAM schema."""
+"""Initial EM schema."""
 
 from typing import Optional, Sequence, Union
 

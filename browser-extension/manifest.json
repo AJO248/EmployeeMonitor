@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "CPAM Companion",
+  "name": "EM Companion",
   "version": "0.1",
-  "description": "Sends active tab info to local CPAM agent",
+  "description": "Sends active tab info to local EM agent",
   "permissions": ["tabs", "activeTab"],
   "background": {
     "service_worker": "background.js"

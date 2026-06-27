@@ -1,18 +1,18 @@
-# Employee Monitor (CPAM)
+# Employee Monitor (EM)
 
-CPAM (C++ & Python Activity Monitor) is a secure, lightweight activity tracking system. It includes a native Windows agent, a Python fallback agent, a browser companion extension, a FastAPI ingestion server, and a web-based administration dashboard.
+EM (EmployeeMonitor) is a secure, lightweight activity tracking system. It includes a native Windows agent, a Python fallback agent, a browser companion extension, a FastAPI ingestion server, and a web-based administration dashboard.
 
 ## System Architecture
 
-CPAM consists of four main components:
+EM consists of four main components:
 1. **Native Agent (C++ & Python)**: Runs on the client machine to monitor foreground window changes and idle status. It batches and securely transmits logs.
 2. **Browser Companion (Chrome Extension)**: Monitors active browser tabs and sends updates to the native agent via a local loopback WebSocket server.
 3. **Ingestion Server (FastAPI)**: A backend endpoint that securely receives batched activity logs and persists them into a database using SQLAlchemy.
 4. **Admin Dashboard**: A web interface for reviewing activity logs, device status, and usage analytics.
 
 ### Security & Data Protection
-- **DPAPI Encryption**: The local SQLite cache (`cpam_cache.db`) is encrypted using Windows Data Protection API (DPAPI). This ensures that intercepted data on disk cannot be easily read by unauthorized local users.
-- **Protected Ingestion**: Log uploads are secured with a Bearer token (`CPAM_INGEST_TOKEN`).
+- **DPAPI Encryption**: The local SQLite cache (`em_cache.db`) is encrypted using Windows Data Protection API (DPAPI). This ensures that intercepted data on disk cannot be easily read by unauthorized local users.
+- **Protected Ingestion**: Log uploads are secured with a Bearer token (`EM_INGEST_TOKEN`).
 - **Secure Admin Access**: The dashboard uses bcrypt for password hashing and issues HTTP-only JWT cookies for authentication.
 
 ## Getting Started
@@ -32,7 +32,7 @@ python -m pip install -r backend/requirements.txt
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env to set your secrets (e.g., CPAM_INGEST_TOKEN, CPAM_ADMIN_PASSWORD)
+# Edit .env to set your secrets (e.g., EM_INGEST_TOKEN, EM_ADMIN_PASSWORD)
 
 # Run the server
 python -m backend.app.main
@@ -85,9 +85,9 @@ You can verify the end-to-end flow using the provided test scripts:
 
 1. Run the test script to verify APIs, rate limiting, and data persistence:
    ```bash
-   .venv\Scripts\python.exe tools/test_cpam.py
+   .venv\Scripts\python.exe tools/test_em.py
    ```
 2. Manually inspect the local cache to verify DPAPI encryption:
    ```bash
-   python tools/view_cache.py --db native-agent/cpam_cache.db --limit 50
+   python tools/view_cache.py --db native-agent/em_cache.db --limit 50
    ```

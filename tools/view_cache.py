@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple viewer for the local SQLite cache `cpam_cache.db`.
+"""Simple viewer for the local SQLite cache `em_cache.db`.
 
 Usage: python tools/view_cache.py [--limit N]
 """
@@ -18,7 +18,7 @@ def human(ts):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", default="cpam_cache.db")
+    parser.add_argument("--db", default="em_cache.db")
     parser.add_argument("--limit", type=int, default=50)
     args = parser.parse_args()
 

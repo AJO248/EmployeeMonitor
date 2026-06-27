@@ -20,7 +20,7 @@ async def login(
         raise HTTPException(status_code=401, detail="Invalid username or password")
     token = create_access_token(user.username)
     response.set_cookie(
-        "cpam_access_token",
+        "em_access_token",
         token,
         httponly=True,
         secure=settings.cookie_secure,
@@ -32,4 +32,4 @@ async def login(
 
 @router.post("/logout", status_code=204)
 async def logout(response: Response):
-    response.delete_cookie("cpam_access_token")
+    response.delete_cookie("em_access_token")

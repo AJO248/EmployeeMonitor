@@ -20,7 +20,7 @@
 
 namespace
 {
-constexpr char kCachePath[] = "cpam_cache.db";
+constexpr char kCachePath[] = "em_cache.db";
 constexpr wchar_t kDefaultBackendUrl[] = L"http://127.0.0.1:8000/api/v1/logs";
 constexpr wchar_t kDefaultIngestToken[] = L"development-ingest-token";
 constexpr size_t kBatchSize = 100;
@@ -99,7 +99,7 @@ std::string protect_cache_value(const std::string &raw)
     input.pbData = reinterpret_cast<BYTE *>(const_cast<char *>(raw.data()));
     input.cbData = static_cast<DWORD>(raw.size());
     DATA_BLOB encrypted{};
-    if (!CryptProtectData(&input, L"CPAM cache event", nullptr, nullptr, nullptr,
+    if (!CryptProtectData(&input, L"EM cache event", nullptr, nullptr, nullptr,
                           CRYPTPROTECT_UI_FORBIDDEN | CRYPTPROTECT_LOCAL_MACHINE, &encrypted))
         return {};
 
@@ -329,13 +329,13 @@ std::string device_id()
 
 std::wstring backend_url()
 {
-    const wchar_t *configured = _wgetenv(L"CPAM_BACKEND_URL");
+    const wchar_t *configured = _wgetenv(L"EM_BACKEND_URL");
     return configured && *configured ? configured : kDefaultBackendUrl;
 }
 
 std::wstring ingest_token()
 {
-    const wchar_t *configured = _wgetenv(L"CPAM_INGEST_TOKEN");
+    const wchar_t *configured = _wgetenv(L"EM_INGEST_TOKEN");
     return configured && *configured ? configured : kDefaultIngestToken;
 }
 
@@ -370,7 +370,7 @@ bool post_json(const std::wstring &url, const std::string &body)
         path.append(components.lpszExtraInfo, components.dwExtraInfoLength);
     const bool secure = components.nScheme == INTERNET_SCHEME_HTTPS;
 
-    HINTERNET session = WinHttpOpen(L"CPAM Native Agent/0.2", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, nullptr, nullptr, 0);
+    HINTERNET session = WinHttpOpen(L"EM Native Agent/0.2", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, nullptr, nullptr, 0);
     if (!session)
         return false;
     WinHttpSetTimeouts(session, 5000, 5000, 10000, 10000);

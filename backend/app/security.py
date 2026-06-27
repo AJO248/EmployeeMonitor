@@ -84,7 +84,11 @@ async def bootstrap_admin(session: AsyncSession) -> None:
             models.AdminUser.username == settings.bootstrap_admin_username
         )
     )
-    if result.scalar_one_or_none():
+    user = result.scalar_one_or_none()
+    if user:
+        if not verify_password(settings.bootstrap_admin_password, user.password_hash):
+            user.password_hash = hash_password(settings.bootstrap_admin_password)
+            await session.commit()
         return
 
     session.add(

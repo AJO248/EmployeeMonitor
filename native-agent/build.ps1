@@ -3,7 +3,7 @@ Simple PowerShell helper to configure and build the native-agent using CMake.
 Run this from an elevated or developer PowerShell on Windows.
 #>
 param(
-    [string]$Generator = "Visual Studio 17 2022",
+    [string]$Generator = "",
     [string]$BuildDir = "build",
     [string]$Config = "Release"
 )
@@ -12,8 +12,12 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Push-Location $root
 if (-Not (Test-Path $BuildDir)) { New-Item -ItemType Directory -Path $BuildDir | Out-Null }
 
-Write-Host "Configuring with CMake generator: $Generator"
-cmake -S . -B $BuildDir -G $Generator
+Write-Host "Configuring with CMake..."
+if ($Generator) {
+    cmake -S . -B $BuildDir -G $Generator
+} else {
+    cmake -S . -B $BuildDir
+}
 if ($LASTEXITCODE -ne 0) { Write-Error "CMake configure failed"; Exit 1 }
 
 Write-Host "Building ($Config)..."

@@ -5,10 +5,24 @@ import urllib.request
 import urllib.error
 import json
 
-BASE_URL = "http://127.0.0.1:8000"
-INGEST_TOKEN = "replace-with-a-random-ingestion-token"
-ADMIN_USER = "admin"
-ADMIN_PASS = "replace-this-password"
+import os
+
+try:
+    from dotenv import load_dotenv
+    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    load_dotenv(dotenv_path)
+except ImportError:
+    pass
+
+backend_url = os.getenv("CPAM_BACKEND_URL", "http://127.0.0.1:8000")
+if "/api/v1/logs" in backend_url:
+    BASE_URL = backend_url.split("/api/v1/logs")[0]
+else:
+    BASE_URL = backend_url.rstrip("/")
+
+INGEST_TOKEN = os.getenv("CPAM_INGEST_TOKEN", "development-ingest-token")
+ADMIN_USER = os.getenv("CPAM_ADMIN_USERNAME", "admin")
+ADMIN_PASS = os.getenv("CPAM_ADMIN_PASSWORD", "change-me")
 
 def make_request(url, method="GET", data=None, headers=None):
     headers = headers or {}

@@ -7,3 +7,9 @@ backend/*.db
 cpam_cache.db
 native-agent/build_vs/
 native-agent/build_vs2026/
+.env
+
+# IDE and Editor folders
+.vs/
+.vscode/
+.idea/

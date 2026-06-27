@@ -8,6 +8,16 @@ const deviceFilter = document.querySelector("#device-filter");
 let activeCharts = {};
 let allData = [];
 
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("visible");
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
 function duration(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -33,9 +43,10 @@ function destroyCharts() {
 }
 
 function getClassificationColor(cls) {
-  if (cls === "productive") return "rgba(16, 185, 129, 0.75)";
-  if (cls === "unproductive") return "rgba(239, 68, 68, 0.75)";
-  return "rgba(168, 85, 247, 0.75)";
+  // Vibrant theme colors for charts
+  if (cls === "productive") return "#10b981"; // Emerald
+  if (cls === "unproductive") return "#f43f5e"; // Rose
+  return "#8b5cf6"; // Violet
 }
 
 function renderDeviceCard(device) {
@@ -129,9 +140,9 @@ function initChart(canvasId, items) {
         labels: ['No activity'],
         datasets: [{
           data: [1],
-          backgroundColor: ['rgba(100, 116, 139, 0.15)'],
-          borderColor: 'rgba(255,255,255,0.05)',
-          borderWidth: 1
+          backgroundColor: ['rgba(148, 163, 184, 0.1)'],
+          borderColor: 'transparent',
+          borderWidth: 0
         }]
       },
       options: {
@@ -141,7 +152,7 @@ function initChart(canvasId, items) {
           legend: { display: false },
           tooltip: { enabled: false }
         },
-        cutout: '75%'
+        cutout: '80%'
       }
     });
   }
@@ -157,8 +168,10 @@ function initChart(canvasId, items) {
       datasets: [{
         data: data,
         backgroundColor: colors,
-        borderColor: '#0f172a',
-        borderWidth: 2
+        hoverBackgroundColor: colors,
+        borderColor: '#0f172a', // matches dark card background
+        borderWidth: 3,
+        hoverOffset: 4
       }]
     },
     options: {
@@ -167,6 +180,12 @@ function initChart(canvasId, items) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleFont: { family: 'Inter', size: 14, weight: 'bold' },
+          bodyFont: { family: 'Inter', size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          boxPadding: 6,
           callbacks: {
             label: function(context) {
               const sec = context.raw;
@@ -177,7 +196,11 @@ function initChart(canvasId, items) {
           }
         }
       },
-      cutout: '70%'
+      cutout: '75%',
+      animation: {
+        animateScale: true,
+        animateRotate: true
+      }
     }
   });
 }
@@ -193,10 +216,15 @@ function render() {
   empty.hidden = filtered.length > 0;
   devices.innerHTML = filtered.map(renderDeviceCard).join("");
 
+  // Initialize charts and observers
   filtered.forEach((device) => {
     const safeId = device.device_id;
     activeCharts[`apps-${safeId}`] = initChart(`chart-apps-${safeId}`, device.top_apps);
     activeCharts[`domains-${safeId}`] = initChart(`chart-domains-${safeId}`, device.top_domains);
+    
+    // Observe the new card for entry animation
+    const card = document.getElementById(`card-${safeId}`);
+    if (card) observer.observe(card);
   });
 }
 

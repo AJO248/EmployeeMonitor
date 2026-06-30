@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(native-agent src/main.cpp src/sqlite3.c)
 
-target_compile_definitions(native-agent PRIVATE UNICODE _UNICODE SQLITE_THREADSAFE=1)
+target_compile_definitions(native-agent PRIVATE UNICODE _UNICODE SQLITE_THREADSAFE=1 _CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
 
 if (WIN32)
     target_link_libraries(native-agent PRIVATE crypt32 winhttp ws2_32)

@@ -5,6 +5,12 @@ const empty = document.querySelector("#empty");
 const loginError = document.querySelector("#login-error");
 const deviceFilter = document.querySelector("#device-filter");
 
+const createAdminModal = document.querySelector("#create-admin-modal");
+const showCreateAdminBtn = document.querySelector("#show-create-admin");
+const closeCreateAdminBtn = document.querySelector("#close-create-admin");
+const createAdminForm = document.querySelector("#create-admin-form");
+const createAdminMessage = document.querySelector("#create-admin-message");
+
 let activeCharts = {};
 let allData = [];
 
@@ -289,6 +295,49 @@ document.querySelector("#logout").addEventListener("click", async () => {
   dashboard.hidden = true;
   loginPanel.hidden = false;
   destroyCharts();
+});
+
+showCreateAdminBtn.addEventListener("click", () => {
+  createAdminModal.hidden = false;
+  createAdminMessage.textContent = "";
+  createAdminMessage.className = "error";
+  createAdminForm.reset();
+});
+
+closeCreateAdminBtn.addEventListener("click", () => {
+  createAdminModal.hidden = true;
+});
+
+createAdminForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  createAdminMessage.textContent = "";
+  createAdminMessage.className = "error";
+
+  const username = document.querySelector("#new-admin-username").value;
+  const password = document.querySelector("#new-admin-password").value;
+
+  try {
+    const response = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      createAdminMessage.textContent = "Admin created successfully!";
+      createAdminMessage.className = "success";
+      createAdminForm.reset();
+      setTimeout(() => {
+        createAdminModal.hidden = true;
+      }, 1500);
+    } else {
+      createAdminMessage.textContent = data.detail || "Failed to create admin.";
+    }
+  } catch (error) {
+    createAdminMessage.textContent = "An error occurred.";
+  }
 });
 
 loadSummary().catch(console.error);

@@ -609,3 +609,47 @@ select:hover {
     gap: 10px;
   }
 }
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 420px;
+  margin: 0;
+  animation: fadeInDown 0.3s ease-out;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.modal-actions button {
+  flex: 1;
+}
+
+.success {
+  color: var(--color-productive);
+  font-size: 0.9rem;
+  margin-top: 16px;
+  text-align: center;
+  min-height: 1.2em;
+}

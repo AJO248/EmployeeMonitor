@@ -11,6 +11,12 @@ const closeCreateAdminBtn = document.querySelector("#close-create-admin");
 const createAdminForm = document.querySelector("#create-admin-form");
 const createAdminMessage = document.querySelector("#create-admin-message");
 
+const timelineModal = document.querySelector("#timeline-modal");
+const closeTimelineBtn = document.querySelector("#close-timeline");
+const timelineEventsContainer = document.querySelector("#timeline-events");
+
+let trendsChartInstance = null;
+
 let activeCharts = {};
 let allData = [];
 
@@ -46,6 +52,11 @@ function destroyCharts() {
     }
   });
   activeCharts = {};
+  
+  if (trendsChartInstance) {
+    trendsChartInstance.destroy();
+    trendsChartInstance = null;
+  }
 }
 
 function getClassificationColor(cls) {
@@ -89,6 +100,7 @@ function renderDeviceCard(device) {
           <h2>${safeId}</h2>
           <span class="status-badge ${device.status.toLowerCase()}">${escapeHtml(device.status)}</span>
         </div>
+        <button class="secondary-btn" onclick="openTimeline('${safeId}')">View Timeline</button>
       </div>
 
       <div class="metrics-row">
@@ -248,6 +260,122 @@ function updateDeviceFilterOptions() {
   });
 }
 
+async function loadTrends() {
+  const hours = document.querySelector("#hours").value;
+  const filterVal = deviceFilter.value;
+  let url = `/api/v1/analytics/trends?hours=${hours}`;
+  if (filterVal !== "all") {
+    url += `&device_id=${encodeURIComponent(filterVal)}`;
+  }
+  
+  const response = await fetch(url);
+  if (!response.ok) return;
+  
+  const trends = await response.json();
+  
+  const ctx = document.getElementById("trendsChart");
+  if (!ctx) return;
+  
+  if (trendsChartInstance) {
+    trendsChartInstance.destroy();
+  }
+  
+  const labels = trends.map(t => {
+    const d = new Date(t.hour_timestamp);
+    return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  });
+  
+  const toMinutes = (seconds) => (seconds / 60).toFixed(1);
+  
+  trendsChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Productive (min)',
+          data: trends.map(t => toMinutes(t.productive_seconds)),
+          borderColor: getClassificationColor('productive'),
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Unproductive (min)',
+          data: trends.map(t => toMinutes(t.unproductive_seconds)),
+          borderColor: getClassificationColor('unproductive'),
+          backgroundColor: 'rgba(244, 63, 94, 0.1)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Idle (min)',
+          data: trends.map(t => toMinutes(t.idle_seconds)),
+          borderColor: getClassificationColor('idle'),
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#f8fafc', font: { family: 'Inter' } } },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: 'rgba(15, 23, 42, 0.9)'
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+      }
+    }
+  });
+}
+
+async function openTimeline(deviceId) {
+  timelineEventsContainer.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Loading timeline...</p>';
+  timelineModal.hidden = false;
+  
+  const hours = document.querySelector("#hours").value;
+  try {
+    const response = await fetch(`/api/v1/analytics/timeline/${encodeURIComponent(deviceId)}?hours=${hours}`);
+    if (!response.ok) throw new Error("Failed to load timeline");
+    
+    const events = await response.json();
+    
+    if (events.length === 0) {
+      timelineEventsContainer.innerHTML = '<p style="color:var(--text-muted); text-align:center;">No activity recorded.</p>';
+      return;
+    }
+    
+    timelineEventsContainer.innerHTML = events.map(ev => {
+      const timeStr = new Date(ev.timestamp).toLocaleTimeString();
+      let content = ev.classification === 'idle' ? 'Idle' : escapeHtml(ev.app_name || 'Unknown App');
+      if (ev.domain) {
+        content += ` - <em>${escapeHtml(ev.domain)}</em>`;
+      }
+      return `
+        <div class="timeline-item ${ev.classification}">
+          <div class="timeline-time">${timeStr} (${duration(ev.duration_seconds)})</div>
+          <div class="timeline-content">${content}</div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (err) {
+    timelineEventsContainer.innerHTML = '<p class="error">Error loading timeline data.</p>';
+  }
+}
+
+closeTimelineBtn.addEventListener("click", () => {
+  timelineModal.hidden = true;
+});
+
 async function loadSummary() {
   const hours = document.querySelector("#hours").value;
   const response = await fetch(`/api/v1/analytics/summary?hours=${hours}`);
@@ -263,6 +391,7 @@ async function loadSummary() {
   
   updateDeviceFilterOptions();
   render();
+  loadTrends();
   
   loginPanel.hidden = true;
   dashboard.hidden = false;
@@ -287,8 +416,14 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
 });
 
 document.querySelector("#refresh").addEventListener("click", loadSummary);
-document.querySelector("#hours").addEventListener("change", loadSummary);
-deviceFilter.addEventListener("change", render);
+document.querySelector("#hours").addEventListener("change", () => {
+  loadSummary();
+  if (!timelineModal.hidden) timelineModal.hidden = true;
+});
+deviceFilter.addEventListener("change", () => {
+  render();
+  loadTrends();
+});
 
 document.querySelector("#logout").addEventListener("click", async () => {
   await fetch("/api/v1/auth/logout", {method: "POST"});

@@ -67,6 +67,14 @@
           </div>
         </header>
 
+        <!-- Trends Chart -->
+        <div id="trends-container" class="panel" style="margin-bottom: 2rem;">
+          <h2 style="margin-bottom: 1rem; font-size: 1.1rem;">Productivity Trends (Hourly)</h2>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="trendsChart"></canvas>
+          </div>
+        </div>
+
         <!-- Devices Container -->
         <div id="devices" class="grid"></div>
         <p id="empty" class="empty-state" hidden>No monitoring data received for the selected period.</p>
@@ -93,6 +101,22 @@
               </div>
               <p id="create-admin-message" class="error"></p>
             </form>
+          </div>
+        </div>
+
+        <!-- Timeline Modal -->
+        <div id="timeline-modal" class="modal-backdrop" hidden>
+          <div class="panel modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div class="login-header">
+              <h2>Device Timeline</h2>
+              <p>Detailed chronological activity log.</p>
+            </div>
+            <div id="timeline-events" style="margin-top: 1.5rem;">
+              <!-- Timeline entries injected here -->
+            </div>
+            <div class="modal-actions" style="margin-top: 2rem;">
+              <button type="button" id="close-timeline" class="secondary-btn">Close</button>
+            </div>
           </div>
         </div>
       </section>

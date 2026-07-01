@@ -41,3 +41,19 @@ class DeviceSummary(BaseModel):
     productivity_score: float = 0.0
     top_apps: List[UsageItem]
     top_domains: List[UsageItem]
+
+
+class DeviceTimelineEvent(BaseModel):
+    timestamp: int
+    duration_seconds: int
+    app_name: Optional[str] = None
+    domain: Optional[str] = None
+    classification: str
+
+
+class DeviceTrend(BaseModel):
+    hour_timestamp: int
+    productive_seconds: int
+    unproductive_seconds: int
+    neutral_seconds: int
+    idle_seconds: int

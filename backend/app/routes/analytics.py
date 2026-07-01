@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import models
 from ..database import get_session
-from ..schemas import DeviceSummary, UsageItem
+from ..schemas import DeviceSummary, UsageItem, DeviceTimelineEvent, DeviceTrend
 from ..security import require_admin
 from ..utils.productivity import classify_activity, BROWSER_APPS
 
@@ -144,3 +144,146 @@ async def summary(
     statement = statement.order_by(models.LogEntry.device_id, models.LogEntry.event_ts)
     result = await session.execute(statement)
     return _summarize(list(result.scalars()))
+
+
+@router.get("/timeline/{device_id}", response_model=List[DeviceTimelineEvent])
+async def timeline(
+    device_id: str,
+    hours: int = Query(default=24, ge=1, le=24 * 31),
+    session: AsyncSession = Depends(get_session),
+):
+    since = int((datetime.now(timezone.utc) - timedelta(hours=hours)).timestamp() * 1000)
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    
+    statement = select(models.LogEntry).where(
+        models.LogEntry.device_id == device_id,
+        models.LogEntry.event_ts >= since
+    ).order_by(models.LogEntry.event_ts)
+    
+    result = await session.execute(statement)
+    entries = list(result.scalars())
+    
+    events = []
+    current_app = None
+    current_domain = None
+    
+    for index, entry in enumerate(entries):
+        if entry.app_name:
+            current_app = entry.app_name
+            if current_app.lower() not in BROWSER_APPS:
+                current_domain = None
+        if entry.domain:
+            current_domain = entry.domain
+            if not current_app or current_app.lower() not in BROWSER_APPS:
+                current_app = "chrome.exe"
+                
+        if index + 1 < len(entries):
+            gap = max(0, (entries[index + 1].event_ts - entry.event_ts) // 1000)
+            duration = min(gap, MAX_INTERVAL_SECONDS)
+        else:
+            latest_ts = entry.event_ts
+            age_sec = max(0, (now_ms - latest_ts) // 1000)
+            if age_sec <= OFFLINE_AFTER_SECONDS:
+                duration = min(age_sec, MAX_INTERVAL_SECONDS)
+            else:
+                duration = 0
+                
+        if duration > 0:
+            if entry.event_type.startswith("idle_") and entry.event_type != "idle_ended":
+                events.append(DeviceTimelineEvent(
+                    timestamp=entry.event_ts,
+                    duration_seconds=duration,
+                    app_name=None,
+                    domain=None,
+                    classification="idle"
+                ))
+                current_app = None
+                current_domain = None
+            else:
+                classification = classify_activity(current_app, current_domain)
+                events.append(DeviceTimelineEvent(
+                    timestamp=entry.event_ts,
+                    duration_seconds=duration,
+                    app_name=current_app,
+                    domain=current_domain,
+                    classification=classification
+                ))
+                
+    return events
+
+
+@router.get("/trends", response_model=List[DeviceTrend])
+async def trends(
+    device_id: Optional[str] = None,
+    hours: int = Query(default=24, ge=1, le=24 * 31),
+    session: AsyncSession = Depends(get_session),
+):
+    since = int((datetime.now(timezone.utc) - timedelta(hours=hours)).timestamp() * 1000)
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    
+    statement = select(models.LogEntry).where(models.LogEntry.event_ts >= since)
+    if device_id:
+        statement = statement.where(models.LogEntry.device_id == device_id)
+    statement = statement.order_by(models.LogEntry.device_id, models.LogEntry.event_ts)
+    result = await session.execute(statement)
+    entries = list(result.scalars())
+    
+    by_device: Dict[str, List[models.LogEntry]] = defaultdict(list)
+    for entry in entries:
+        by_device[entry.device_id or "unknown"].append(entry)
+        
+    trends_by_hour: Dict[int, DeviceTrend] = {}
+    
+    for d_id, device_entries in by_device.items():
+        current_app = None
+        current_domain = None
+        
+        for index, entry in enumerate(device_entries):
+            if entry.app_name:
+                current_app = entry.app_name
+                if current_app.lower() not in BROWSER_APPS:
+                    current_domain = None
+            if entry.domain:
+                current_domain = entry.domain
+                if not current_app or current_app.lower() not in BROWSER_APPS:
+                    current_app = "chrome.exe"
+                    
+            if index + 1 < len(device_entries):
+                gap = max(0, (device_entries[index + 1].event_ts - entry.event_ts) // 1000)
+                duration = min(gap, MAX_INTERVAL_SECONDS)
+            else:
+                age_sec = max(0, (now_ms - entry.event_ts) // 1000)
+                if age_sec <= OFFLINE_AFTER_SECONDS:
+                    duration = min(age_sec, MAX_INTERVAL_SECONDS)
+                else:
+                    duration = 0
+                    
+            if duration > 0:
+                # Group by hour
+                dt = datetime.fromtimestamp(entry.event_ts / 1000, tz=timezone.utc)
+                hour_dt = dt.replace(minute=0, second=0, microsecond=0)
+                hour_ts = int(hour_dt.timestamp() * 1000)
+                
+                if hour_ts not in trends_by_hour:
+                    trends_by_hour[hour_ts] = DeviceTrend(
+                        hour_timestamp=hour_ts,
+                        productive_seconds=0,
+                        unproductive_seconds=0,
+                        neutral_seconds=0,
+                        idle_seconds=0
+                    )
+                
+                if entry.event_type.startswith("idle_") and entry.event_type != "idle_ended":
+                    trends_by_hour[hour_ts].idle_seconds += duration
+                    current_app = None
+                    current_domain = None
+                else:
+                    classification = classify_activity(current_app, current_domain)
+                    if classification == "productive":
+                        trends_by_hour[hour_ts].productive_seconds += duration
+                    elif classification == "unproductive":
+                        trends_by_hour[hour_ts].unproductive_seconds += duration
+                    else:
+                        trends_by_hour[hour_ts].neutral_seconds += duration
+                        
+    return sorted(trends_by_hour.values(), key=lambda t: t.hour_timestamp)

@@ -1,93 +1,104 @@
 # Employee Monitor (EM)
 
-EM (EmployeeMonitor) is a secure, lightweight activity tracking system. It includes a native Windows agent, a Python fallback agent, a browser companion extension, a FastAPI ingestion server, and a web-based administration dashboard.
+EmployeeMonitor is a secure, lightweight activity tracking system. It provides comprehensive activity monitoring by tracking active windows, user idle states, and active browser tabs, whilst offering a secure backend for data ingestion and a web-based dashboard for reviewing logs.
 
-## System Architecture
+## 🏗️ System Architecture
 
-EM consists of four main components:
-1. **Native Agent (C++ & Python)**: Runs on the client machine to monitor foreground window changes and idle status. It batches and securely transmits logs.
-2. **Browser Companion (Chrome Extension)**: Monitors active browser tabs and sends updates to the native agent via a local loopback WebSocket server.
-3. **Ingestion Server (FastAPI)**: A backend endpoint that securely receives batched activity logs and persists them into a database using SQLAlchemy.
-4. **Admin Dashboard**: A web interface for reviewing activity logs, device status, and usage analytics.
+The project consists of four tightly-integrated components:
 
-### Security & Data Protection
-- **DPAPI Encryption**: The local SQLite cache (`em_cache.db`) is encrypted using Windows Data Protection API (DPAPI). This ensures that intercepted data on disk cannot be easily read by unauthorized local users.
-- **Protected Ingestion**: Log uploads are secured with a Bearer token (`EM_INGEST_TOKEN`).
-- **Secure Admin Access**: The dashboard uses bcrypt for password hashing and issues HTTP-only JWT cookies for authentication.
+1. **Native Agent (C++)**: Runs on the Windows client machine to monitor foreground window changes, idle status, and host a local WebSocket server for the browser extension. It locally caches and securely encrypts data (using Windows DPAPI) before batch-transmitting logs to the ingestion server.
+2. **Browser Companion (Chrome/Edge Extension)**: A lightweight browser extension that monitors active tabs and securely relays the current URL/title to the native agent via a local WebSocket connection (`ws://127.0.0.1:8585`).
+3. **Ingestion Server (FastAPI)**: A Python-based backend that securely receives batched activity logs, validates them using Pydantic, and persists them into a relational database using SQLAlchemy (SQLite/PostgreSQL support).
+4. **Admin Dashboard (HTML/JS/CSS)**: A clean, vanilla web interface for administrators to review activity logs, analyze device status, and check usage analytics. Served automatically by the FastAPI backend.
 
-## Getting Started
+## 🔐 Security & Data Protection
 
-### 1. Start the Ingestion Server (FastAPI)
+- **Local Encryption (DPAPI)**: The agent caches logs locally in a SQLite database (`cpam_cache.db`). The data is encrypted at rest using the Windows Data Protection API (DPAPI). Only the user account that created the data can decrypt it.
+- **Secure Ingestion**: Log uploads to the backend require a Bearer token (`EM_INGEST_TOKEN`) to prevent unauthorized log injection.
+- **Admin Authentication**: The admin dashboard uses secure bcrypt password hashing and issues HTTP-only JWT cookies to maintain authenticated sessions securely.
 
-Ensure you have Python 3.9+ installed.
+---
 
+## 🚀 Setup & Installation Guide
+
+### 1. Backend Server & Admin Dashboard
+
+The backend is built with FastAPI and serves the admin dashboard statically.
+
+**Prerequisites**:
+- Python 3.9+
+
+**Installation**:
 ```bash
-# Create and activate a virtual environment
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
+# Clone the repository and enter the directory
+cd EmployeeMonitor
 
-# Install dependencies
+# Create and activate a Python virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # On Windows
+
+# Install the backend requirements
 python -m pip install -r backend/requirements.txt
 
-# Configure environment variables
+# Configure Environment Variables
 cp .env.example .env
-# Edit .env to set your secrets (e.g., EM_INGEST_TOKEN, EM_ADMIN_PASSWORD)
-
-# Run the server
-python -m backend.app.main
-# or: uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+# Edit .env and set your secrets, e.g., EM_INGEST_TOKEN, EM_ADMIN_PASSWORD
 ```
-The ingestion server will run on `http://127.0.0.1:8000`.
 
-### 2. Run the Native Agent
-
-The agent captures window activity and hosts the local WebSocket loopback server.
-
-#### Option A: Python Fallback Agent (Recommended for development without a C++ toolchain)
-
+**Running the Server**:
 ```bash
-# Ensure you are in the virtual environment
-.venv\Scripts\activate
-
-# Run the Python agent
-python native-agent/agent.py
+# Start the Uvicorn server (automatically mounts the admin-frontend)
+python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+The ingestion API will run on `http://127.0.0.1:8000`.
+The Admin Dashboard will be accessible at `http://127.0.0.1:8000/admin/`.
 
-#### Option B: C++ Native Agent
+### 2. Native Windows Agent
 
-If you have a C++17-capable toolchain (like Visual Studio or MinGW), you can compile the native executable.
+The Native Agent monitors local activity and relays data to the backend.
 
+**Prerequisites**:
+- Windows OS
+- CMake 3.10+
+- A C++17 capable toolchain (e.g., Visual Studio Build Tools, MSVC)
+
+**Building**:
 ```powershell
+# Navigate to the native-agent directory
 cd native-agent
-./build.ps1
-# Run the built executable
-build\Release\native-agent.exe
+
+# Run the provided PowerShell build script
+.\build.ps1
 ```
 
-**Troubleshooting C++ Compilation**: If you encounter errors or do not have a Visual Studio toolchain installed, use the Python fallback agent (`agent.py`) instead. The Python agent provides the same functionality and uses the same DPAPI encryption.
+**Running**:
+After a successful build, the executable will be located in the `build/Release` folder:
+```powershell
+.\build\Release\native-agent.exe
+```
+*Note: Make sure the backend server is running and accessible so the agent can upload logs.*
 
-### 3. Install the Browser Companion
+### 3. Browser Companion Extension
 
-1. Open Chrome or Edge and go to `chrome://extensions/` (or `edge://extensions/`).
-2. Enable **Developer mode**.
+The browser extension tracks active URLs and sends them to the native agent's WebSocket server.
+
+**Installation (Chrome/Edge)**:
+1. Open your browser and navigate to `chrome://extensions/` (or `edge://extensions/`).
+2. Turn on **Developer mode** (usually a toggle in the top right corner).
 3. Click **Load unpacked** and select the `browser-extension` folder from this repository.
-4. The extension will automatically connect to the agent's WebSocket server at `ws://127.0.0.1:8585`.
+4. The extension will automatically activate and attempt to connect to the native agent at `ws://127.0.0.1:8585`.
 
-### 4. Access the Admin Dashboard
+---
 
-1. Navigate to `http://127.0.0.1:8000/admin/` in your browser.
-2. Log in using the credentials defined in your `.env` file (Default: `admin` / `change-me`).
+## ⚙️ Configuration
 
-## Testing and Verification
+The project uses a `.env` file for centralized configuration. Ensure this file is present in the root directory before running the backend. Important variables include:
+- `EM_INGEST_TOKEN`: The token used by the Native Agent to authorize log uploads.
+- `EM_ADMIN_PASSWORD`: The password for the admin dashboard.
+- Database connection strings and JWT secrets.
 
-You can verify the end-to-end flow using the provided test scripts:
+## 🧪 Testing & Verification
 
-1. Run the test script to verify APIs, rate limiting, and data persistence:
-   ```bash
-   .venv\Scripts\python.exe tools/test_em.py
-   ```
-2. Manually inspect the local cache to verify DPAPI encryption:
-   ```bash
-   python tools/view_cache.py --db native-agent/em_cache.db --limit 50
-   ```
+1. **Verify Backend**: Navigate to `http://127.0.0.1:8000/health` to confirm the API is online.
+2. **Access Dashboard**: Open `http://127.0.0.1:8000/admin/` and log in with your credentials.
+3. **Verify Agent Integration**: Run the Native Agent, browse a few websites with the extension enabled, and verify that new logs populate in the Admin Dashboard.

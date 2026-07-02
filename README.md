@@ -2,7 +2,7 @@
 
 EmployeeMonitor is a secure, lightweight activity tracking system. It provides comprehensive activity monitoring by tracking active windows, user idle states, and active browser tabs, whilst offering a secure backend for data ingestion and a web-based dashboard for reviewing logs.
 
-## 🏗️ System Architecture
+## System Architecture
 
 The project consists of four tightly-integrated components:
 
@@ -11,7 +11,7 @@ The project consists of four tightly-integrated components:
 3. **Ingestion Server (FastAPI)**: A Python-based backend that securely receives batched activity logs, validates them using Pydantic, and persists them into a relational database using SQLAlchemy (SQLite/PostgreSQL support).
 4. **Admin Dashboard (HTML/JS/CSS)**: A clean, vanilla web interface for administrators to review activity logs, analyze device status, and check usage analytics. Served automatically by the FastAPI backend.
 
-## 🔐 Security & Data Protection
+## Security & Data Protection
 
 - **Local Encryption (DPAPI)**: The agent caches logs locally in a SQLite database (`cpam_cache.db`). The data is encrypted at rest using the Windows Data Protection API (DPAPI). Only the user account that created the data can decrypt it.
 - **Secure Ingestion**: Log uploads to the backend require a Bearer token (`EM_INGEST_TOKEN`) to prevent unauthorized log injection.
@@ -19,7 +19,7 @@ The project consists of four tightly-integrated components:
 
 ---
 
-## 🚀 Setup & Installation Guide
+## Setup & Installation Guide
 
 ### 1. Backend Server & Admin Dashboard
 
@@ -90,14 +90,14 @@ The browser extension tracks active URLs and sends them to the native agent's We
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 The project uses a `.env` file for centralized configuration. Ensure this file is present in the root directory before running the backend. Important variables include:
 - `EM_INGEST_TOKEN`: The token used by the Native Agent to authorize log uploads.
 - `EM_ADMIN_PASSWORD`: The password for the admin dashboard.
 - Database connection strings and JWT secrets.
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
 1. **Verify Backend**: Navigate to `http://127.0.0.1:8000/health` to confirm the API is online.
 2. **Access Dashboard**: Open `http://127.0.0.1:8000/admin/` and log in with your credentials.
